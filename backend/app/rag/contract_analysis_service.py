@@ -73,18 +73,14 @@ def select_relevant_chunks(chunks: list[dict[str, Any]]) -> list[str]:
 
 
 def analyze_contract(contract_text: str, filename: str | None = None) -> list[str]:
-    print(f"Analisando contrato: filename={filename}, texto[:200]={contract_text[:200]}...")
-    chunks = get_or_create_chunks(contract_text, filename)
-    relevant_chunks = select_relevant_chunks(chunks)
-    print(f"Chunks relevantes encontrados: {len(relevant_chunks)}")
-    if not relevant_chunks:
-        raise ValueError("Não foram encontrados trechos relevantes para análise.")
+    print(f"Analisando pedido de compra: filename={filename}, texto[:200]={contract_text[:200]}...")
+    if not contract_text.strip():
+        raise ValueError("O texto do documento está vazio.")
 
-    # Consolidar todos os trechos relevantes em um único contexto para evitar redundância
-    combined_context = "\n\n".join(relevant_chunks)
-
-    print("Analisando contexto consolidado do pedido de compra...")
-    prompt = build_analysis_prompt_for_context(combined_context)
+    # Analisa diretamente o texto completo do pedido para evitar fatiamento redundante
+    # e contaminações de diretrizes jurídicas da antiga base de dados do RAG.
+    print("Analisando dados do pedido de compra...")
+    prompt = build_analysis_prompt_for_context(contract_text)
     messages = [SYSTEM_MESSAGE, {"role": "user", "content": prompt}]
     analysis = generate_response(messages)
 

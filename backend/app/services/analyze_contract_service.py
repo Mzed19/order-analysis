@@ -26,21 +26,17 @@ OVERLAP = 100
 MAX_CHUNKS = 6
 
 def analyze_contract(contract_text: str, filename: str | None = None, progress_callback=None) -> list[str]:
-    print(f"Analisando contrato: filename={filename}, texto[:200]={contract_text[:200]}...")
-    chunks = get_or_create_chunks(contract_text, filename)
-    relevant_chunks = select_relevant_chunks(chunks)
-    print(f"Chunks relevantes encontrados: {len(relevant_chunks)}")
-    if not relevant_chunks:
-        raise ValueError("Não foram encontrados trechos relevantes para análise.")
+    print(f"Analisando pedido de compra: filename={filename}, texto[:200]={contract_text[:200]}...")
+    if not contract_text.strip():
+        raise ValueError("O texto do documento está vazio.")
 
     if progress_callback:
         progress_callback(chunks_quantity=1, analyzed_chunks_quantity=0)
 
-    # Consolidar todos os trechos relevantes em um único contexto para evitar redundância
-    combined_context = "\n\n".join(relevant_chunks)
-
-    print("Analisando contexto consolidado do pedido de compra...")
-    prompt = build_analysis_prompt_for_context(combined_context)
+    # Analisa diretamente o texto completo do pedido para evitar fatiamento redundante
+    # e contaminações de diretrizes jurídicas da antiga base de dados do RAG.
+    print("Analisando dados do pedido de compra...")
+    prompt = build_analysis_prompt_for_context(contract_text)
     messages = [SYSTEM_MESSAGE, {"role": "user", "content": prompt}]
     analysis = generate_response(messages)
 
@@ -59,182 +55,97 @@ def get_or_create_chunks(contract_text: str, filename: str | None = None) -> lis
     set_contract_chunks(cache_key, chunks)
     return chunks
 
+def extract_numeric_value(text: str, patterns: list[str]) -> float | None:
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            val_str = match.group(1)
+            val_str = re.sub(r"[^\d,\.]", "", val_str)
+            # Formato brasileiro: 1.000.000,00 -> 1000000.00
+            if "," in val_str and "." in val_str:
+                val_str = val_str.replace(".", "").replace(",", ".")
+            elif "," in val_str:
+                val_str = val_str.replace(",", ".")
+            elif "." in val_str:
+                parts = val_str.split(".")
+                if len(parts[-1]) == 3:
+                    val_str = val_str.replace(".", "")
+            try:
+                return float(val_str)
+            except ValueError:
+                continue
+    return None
+
+def format_currency_br(val: float) -> str:
+    return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+def check_credit_limit(text: str) -> str:
+    valor_compra = extract_numeric_value(text, [
+        r"Valor da Compra\s*R\$\s*([\d\.,]+)",
+        r"Valor\s*R\$\s*([\d\.,]+)",
+        r"Valor da Compra\s*([\d\.,]+)",
+        r"Valor\s*([\d\.,]+)",
+    ])
+    limite_credito = extract_numeric_value(text, [
+        r"Limite de Crédito\s*(?:\([^\)]+\))?\s*R\$\s*([\d\.,]+)",
+        r"Limite\s*(?:\([^\)]+\))?\s*R\$\s*([\d\.,]+)",
+        r"Limite de Crédito\s*([\d\.,]+)",
+        r"Limite\s*([\d\.,]+)",
+    ])
+
+    if valor_compra is not None and limite_credito is not None:
+        if valor_compra > limite_credito:
+            excedente = valor_compra - limite_credito
+            return (
+                f"\n[FATO MATEMÁTICO REAL]: O valor do pedido (R$ {format_currency_br(valor_compra)}) EXCEDEU o limite de crédito "
+                f"(R$ {format_currency_br(limite_credito)}) em R$ {format_currency_br(excedente)}. O limite de crédito é INSUFICIENTE. "
+                f"A recomendação deve ser NEGAR ou colocar em ANÁLISE MANUAL.\n"
+            )
+        else:
+            disponivel = limite_credito - valor_compra
+            return (
+                f"\n[FATO MATEMÁTICO REAL]: O valor do pedido (R$ {format_currency_br(valor_compra)}) é MENOR OU IGUAL ao limite de crédito "
+                f"(R$ {format_currency_br(limite_credito)}). Há saldo disponível de R$ {format_currency_br(disponivel)}. "
+                f"O limite de crédito é SUFICIENTE. Você NÃO deve dizer que o limite é insuficiente, pois R$ {format_currency_br(valor_compra)} "
+                f"cabe perfeitamente dentro de R$ {format_currency_br(limite_credito)}.\n"
+            )
+    return ""
+
 def build_analysis_prompt_for_context(context: str) -> str:
+    fato_matematico = check_credit_limit(context)
     return f"""
-    Você é um Analista de Crédito Sênior especializado na avaliação de risco para aprovação de pedidos de compra entre empresas.
+   Você é um sistema especialista em Análise de Crédito Sênior. Seu objetivo é emitir uma recomendação estritamente técnica, direta e sem rodeios sobre a aprovação ou negativa de um pedido de compra entre empresas. 
 
-    Seu objetivo é emitir um parecer técnico, imparcial e fundamentado exclusivamente nas informações fornecidas.
+Você não deve resumir o contexto, mas sim tomar uma decisão baseada em fatos de risco.
 
-    Não invente informações.
-    Não faça suposições.
-    Não utilize conhecimento externo.
-    Não complete campos ausentes.
+## Diretrizes de Decisão (Rigidez Lógica)
+- **Prioridade de Veto:** Fatores de risco crítico (protestos ativos, recuperação judicial, score abaixo da política, pedido acima do limite) anulam automaticamente dados históricos positivos (como tempo de empresa ou capital social). 
+- **Regra Anti-Contradição:** Se houver um fator de risco crítico, a recomendação deve ser NEGAR ou ANÁLISE MANUAL. Nunca atenue um risco real justificando que a empresa "é antiga" ou "tem bom faturamento".
+- **Uso do Contexto:** Baseie-se exclusivamente nos dados fornecidos. Não presuma, não invente e não estime dados ausentes.
+- **Ausência de Limite:** Se não houver limite de crédito informado, ignore esta variável e decida com base nos outros indicadores (protestos, score, faturamento). Nunca trate a ausência de limite como um ponto negativo.
 
-    Caso uma informação importante não esteja disponível, simplesmente informe sua ausência e continue a análise utilizando as demais evidências.
+## Critérios de Avaliação
+- **Divergência de Dados:** Se o RAG trouxer informações conflitantes sobre o mesmo indicador, adote a postura mais conservadora (maior risco) e cite o conflito.
+- **Foco no Risco:** Ignore dados cadastrais irrelevantes (endereço, CNAE secundário). Foque apenas em saúde financeira e capacidade de pagamento.
 
-    ==================================================
-    PRINCÍPIOS DA ANÁLISE
-    ==================================================
+## Formato da Resposta (Siga Estritamente)
 
-    Sua análise deve considerar todas as informações disponíveis, independentemente da fonte.
+**RECOMENDAÇÃO:** [APROVAR, NEGAR ou ANÁLISE MANUAL]
 
-    As informações podem incluir, entre outras:
+**JUSTIFICATIVA CRÍTICA:**
+[Insira aqui a explicação direta em no máximo 3 frases. Vá direto aos fatos que determinaram a decisão, citando valores, quantidades e o impacto financeiro imediato.]
 
-    - Valor do pedido
-    - Limite de crédito (quando existir)
-    - Score de crédito
-    - Protestos
-    - Pendências financeiras
-    - Restrições
-    - Ações judiciais
-    - Recuperação judicial
-    - Falência
-    - Histórico comercial
-    - Histórico de pagamentos
-    - Capital social
-    - Faturamento
-    - Tempo de empresa
-    - Dados cadastrais
-    - Informações societárias
-    - Qualquer outro indicador de risco encontrado.
+**EVIDÊNCIAS DETERMINANTES:**
+- [Indicador 1]: [Valor encontrado] -> [Impacto exato no risco]
+- [Indicador 2]: [Valor encontrado] -> [Impacto exato no risco]
+- [Indicador 3]: [Valor encontrado] -> [Impacto exato no risco]
 
-    Nem todas essas informações estarão presentes.
+==================================================
+DADOS PARA ANÁLISE (CONTEXTO DO RAG)
+==================================================
+{context}
 
-    A ausência de determinado dado NÃO representa um fator positivo nem negativo.
-
-    ==================================================
-    REGRAS IMPORTANTES
-    ==================================================
-
-    1. Caso exista um limite de crédito claramente identificado, utilize-o na análise.
-
-    2. Se o valor do pedido ultrapassar o limite disponível, isso representa um fator crítico e deve ser destacado como um dos principais motivos da decisão.
-
-    3. Caso NÃO exista limite de crédito informado, NÃO penalize a análise por isso. Utilize os demais indicadores disponíveis para fundamentar a recomendação.
-
-    4. Nunca invente um limite de crédito.
-
-    5. Sempre cite os valores encontrados no documento.
-
-    6. Procure relações entre as informações.
-
-    Exemplos:
-
-    - Pedido elevado para uma empresa com baixo capital social.
-    - Diversos protestos mesmo com score elevado.
-    - Empresa antiga, porém com muitas ações judiciais recentes.
-    - Score baixo aliado a alto índice de inadimplência.
-    - Faturamento compatível com o pedido.
-    - Capital social incompatível com o volume solicitado.
-
-    Esses cruzamentos possuem maior importância do que analisar cada indicador isoladamente.
-
-    ==================================================
-    PROFUNDIDADE DA ANÁLISE
-    ==================================================
-
-    A análise deve identificar:
-
-    • Os principais fatores que reduzem o risco.
-
-    • Os principais fatores que aumentam o risco.
-
-    • Possíveis inconsistências entre as informações.
-
-    • Indicadores que merecem investigação adicional.
-
-    • Informações que reforçam a decisão.
-
-    • Informações que enfraquecem a decisão.
-
-    • O impacto financeiro do pedido em relação à capacidade econômica identificada.
-
-    Sempre explique POR QUE determinado dado aumenta ou reduz o risco.
-
-    Evite apenas listar informações.
-
-    Produza uma conclusão semelhante à de um analista de crédito experiente.
-
-    ==================================================
-    FORMATO DA RESPOSTA
-    ==================================================
-
-    ## Parecer
-
-    Informe uma recomendação objetiva:
-
-    - APROVAR
-    - APROVAR COM RESSALVAS
-    - ENCAMINHAR PARA ANÁLISE MANUAL
-    - REPROVAR
-
-    Em seguida, apresente uma justificativa técnica, clara e detalhada, citando explicitamente os dados numéricos que fundamentaram a decisão.
-
-    --------------------------------------------------
-
-    ## Resumo Executivo
-
-    Resumo da situação da empresa em até 5 linhas.
-
-    --------------------------------------------------
-
-    ## Principais Evidências
-
-    Liste apenas os fatores que realmente influenciaram a decisão.
-
-    Para cada evidência informe:
-
-    - Evidência encontrada
-    - Valor encontrado
-    - Impacto (Baixo, Médio ou Alto)
-    - Justificativa
-
-    --------------------------------------------------
-
-    ## Pontos Positivos
-
-    Liste somente fatores positivos encontrados.
-
-    --------------------------------------------------
-
-    ## Pontos Negativos
-
-    Liste somente fatores negativos encontrados.
-
-    --------------------------------------------------
-
-    ## Pontos de Atenção
-
-    Liste fatores que merecem acompanhamento.
-
-    Caso o pedido ultrapasse um limite de crédito informado, destaque isso obrigatoriamente.
-
-    Caso não exista limite informado, não mencione sua ausência como um problema.
-
-    --------------------------------------------------
-
-    ## Informações Ausentes
-
-    Liste apenas informações que poderiam aumentar a confiabilidade da análise caso estivessem disponíveis.
-
-    --------------------------------------------------
-
-    ## Conclusão
-
-    Apresente uma conclusão técnica explicando:
-
-    - Quais fatores tiveram maior peso.
-    - Qual foi o principal risco identificado.
-    - O principal fator favorável.
-    - O nível geral de risco (Baixo, Médio, Alto ou Crítico).
-    - O grau de confiança da análise (0 a 100%).
-
-    ==================================================
-    DOCUMENTO
-    ==================================================
-
-    {context}
-
+{fato_matematico}
     """
 def build_chunks(contract_text: str) -> list[dict[str, Any]]:
     normalized = normalize_text(contract_text)
