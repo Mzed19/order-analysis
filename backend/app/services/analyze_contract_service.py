@@ -60,34 +60,182 @@ def get_or_create_chunks(contract_text: str, filename: str | None = None) -> lis
     return chunks
 
 def build_analysis_prompt_for_context(context: str) -> str:
-    return (
-        f"""Analise as informações do pedido de compra e os dados cadastrais/financeiros abaixo para realizar uma avaliação de risco de crédito consolidada e extremamente precisa.
+    return f"""
+    Você é um Analista de Crédito Sênior especializado na avaliação de risco para aprovação de pedidos de compra entre empresas.
 
-DIRETRIZES DE ANÁLISE:
-1. Baseie sua decisão em dados concretos do texto (valores, limites, ações judiciais, protestos e score).
-2. Mencione explicitamente os valores numéricos e dados específicos (valores em reais, quantidade de protestos, pontuação de score) que determinaram a sua decisão de crédito.
-3. Compare o valor total do pedido com o limite de crédito disponível e aponte a discrepância de valores.
-4. Pondere o risco do valor dos processos judiciais ativos (polos passivos) e a presença de protestos.
-5. Evite redundâncias. Entregue uma única resposta conclusiva e direta.
+    Seu objetivo é emitir um parecer técnico, imparcial e fundamentado exclusivamente nas informações fornecidas.
 
-FORMATO DA RESPOSTA (Siga rigorosamente esta estrutura):
+    Não invente informações.
+    Não faça suposições.
+    Não utilize conhecimento externo.
+    Não complete campos ausentes.
 
-### Decisão: [Aprovar / Não Aprovar / Revisão Manual]
-- **Motivo:** [Justificativa clara citando explicitamente os dados numéricos determinantes do texto, ex: 'O valor da compra de R$ X excede o limite de crédito de R$ Y em Z vezes.']
-- **Fator Positivo:** [Ponto positivo identificado com seu respectivo valor/métrica, ex: 'Score Sivee de X é considerado bom', 'Zero protestos ativos', etc.]
-- **Fator Positivo:** [Outro ponto positivo se houver]
-- **Fator Negativo:** [Risco identificado com seu respectivo valor/métrica, ex: 'Processos judiciais como polo passivo totalizam R$ X', etc.]
-- **Fator Negativo:** [Outro ponto negativo se houver]
-- **Ponto de Atenção:** [Recomendação prática de mitigação de risco com base nos dados, ex: 'Faturar apenas até o limite de R$ X e exigir sinal de Y%']
-- **Ponto de Atenção:** [Outro ponto de atenção se houver]
+    Caso uma informação importante não esteja disponível, simplesmente informe sua ausência e continue a análise utilizando as demais evidências.
 
-DADOS DO DOCUMENTO:
----
-{context}
----
-"""
-    )
+    ==================================================
+    PRINCÍPIOS DA ANÁLISE
+    ==================================================
 
+    Sua análise deve considerar todas as informações disponíveis, independentemente da fonte.
+
+    As informações podem incluir, entre outras:
+
+    - Valor do pedido
+    - Limite de crédito (quando existir)
+    - Score de crédito
+    - Protestos
+    - Pendências financeiras
+    - Restrições
+    - Ações judiciais
+    - Recuperação judicial
+    - Falência
+    - Histórico comercial
+    - Histórico de pagamentos
+    - Capital social
+    - Faturamento
+    - Tempo de empresa
+    - Dados cadastrais
+    - Informações societárias
+    - Qualquer outro indicador de risco encontrado.
+
+    Nem todas essas informações estarão presentes.
+
+    A ausência de determinado dado NÃO representa um fator positivo nem negativo.
+
+    ==================================================
+    REGRAS IMPORTANTES
+    ==================================================
+
+    1. Caso exista um limite de crédito claramente identificado, utilize-o na análise.
+
+    2. Se o valor do pedido ultrapassar o limite disponível, isso representa um fator crítico e deve ser destacado como um dos principais motivos da decisão.
+
+    3. Caso NÃO exista limite de crédito informado, NÃO penalize a análise por isso. Utilize os demais indicadores disponíveis para fundamentar a recomendação.
+
+    4. Nunca invente um limite de crédito.
+
+    5. Sempre cite os valores encontrados no documento.
+
+    6. Procure relações entre as informações.
+
+    Exemplos:
+
+    - Pedido elevado para uma empresa com baixo capital social.
+    - Diversos protestos mesmo com score elevado.
+    - Empresa antiga, porém com muitas ações judiciais recentes.
+    - Score baixo aliado a alto índice de inadimplência.
+    - Faturamento compatível com o pedido.
+    - Capital social incompatível com o volume solicitado.
+
+    Esses cruzamentos possuem maior importância do que analisar cada indicador isoladamente.
+
+    ==================================================
+    PROFUNDIDADE DA ANÁLISE
+    ==================================================
+
+    A análise deve identificar:
+
+    • Os principais fatores que reduzem o risco.
+
+    • Os principais fatores que aumentam o risco.
+
+    • Possíveis inconsistências entre as informações.
+
+    • Indicadores que merecem investigação adicional.
+
+    • Informações que reforçam a decisão.
+
+    • Informações que enfraquecem a decisão.
+
+    • O impacto financeiro do pedido em relação à capacidade econômica identificada.
+
+    Sempre explique POR QUE determinado dado aumenta ou reduz o risco.
+
+    Evite apenas listar informações.
+
+    Produza uma conclusão semelhante à de um analista de crédito experiente.
+
+    ==================================================
+    FORMATO DA RESPOSTA
+    ==================================================
+
+    ## Parecer
+
+    Informe uma recomendação objetiva:
+
+    - APROVAR
+    - APROVAR COM RESSALVAS
+    - ENCAMINHAR PARA ANÁLISE MANUAL
+    - REPROVAR
+
+    Em seguida, apresente uma justificativa técnica, clara e detalhada, citando explicitamente os dados numéricos que fundamentaram a decisão.
+
+    --------------------------------------------------
+
+    ## Resumo Executivo
+
+    Resumo da situação da empresa em até 5 linhas.
+
+    --------------------------------------------------
+
+    ## Principais Evidências
+
+    Liste apenas os fatores que realmente influenciaram a decisão.
+
+    Para cada evidência informe:
+
+    - Evidência encontrada
+    - Valor encontrado
+    - Impacto (Baixo, Médio ou Alto)
+    - Justificativa
+
+    --------------------------------------------------
+
+    ## Pontos Positivos
+
+    Liste somente fatores positivos encontrados.
+
+    --------------------------------------------------
+
+    ## Pontos Negativos
+
+    Liste somente fatores negativos encontrados.
+
+    --------------------------------------------------
+
+    ## Pontos de Atenção
+
+    Liste fatores que merecem acompanhamento.
+
+    Caso o pedido ultrapasse um limite de crédito informado, destaque isso obrigatoriamente.
+
+    Caso não exista limite informado, não mencione sua ausência como um problema.
+
+    --------------------------------------------------
+
+    ## Informações Ausentes
+
+    Liste apenas informações que poderiam aumentar a confiabilidade da análise caso estivessem disponíveis.
+
+    --------------------------------------------------
+
+    ## Conclusão
+
+    Apresente uma conclusão técnica explicando:
+
+    - Quais fatores tiveram maior peso.
+    - Qual foi o principal risco identificado.
+    - O principal fator favorável.
+    - O nível geral de risco (Baixo, Médio, Alto ou Crítico).
+    - O grau de confiança da análise (0 a 100%).
+
+    ==================================================
+    DOCUMENTO
+    ==================================================
+
+    {context}
+
+    """
 def build_chunks(contract_text: str) -> list[dict[str, Any]]:
     normalized = normalize_text(contract_text)
     chunks = chunk_text(normalized, chunk_size=CHUNK_SIZE, overlap=OVERLAP)

@@ -15,21 +15,11 @@ from app.workers.task_queue import enqueue_task, get_task, task_exists, get_task
 from app.core.redis_cache import make_contract_cache_key, get_contract_chunks, set_contract_chunks
 from app.rag.pipeline import generate_response
 
-ANALYSIS_QUERY = (
-    "Valor da compra, parcelas, CNPJ, nome fantasia, quantidade de protestos, "
-    "processos judiciais, limite de crédito, créditos vencidos, quantidade, valor"
-    "créditos baixados como prejuízo, score, condições de aprovação, Motivos da Reprovação, Observação."
+from app.services.analyze_contract_service import (
+    ANALYSIS_QUERY,
+    SYSTEM_MESSAGE,
+    build_analysis_prompt_for_context,
 )
-
-SYSTEM_MESSAGE = {
-    "role": "system",
-    "content": (
-        "Você é um Analista de Crédito Sênior especializado na avaliação de pedidos de compra e relatórios de risco financeiro. "
-        "Sua missão é analisar os indicadores de crédito (como score, limite de crédito, processos judiciais, protestos e inadimplência) "
-        "para determinar se a concessão de crédito para o pedido de compra deve ser aprovada ou não. "
-        "Sua comunicação é extremamente direta, executiva e focada em resultados. Vá direto ao ponto."
-    ),
-}
 
 CHUNK_SIZE = 800
 OVERLAP = 150
@@ -79,34 +69,7 @@ def select_relevant_chunks(chunks: list[dict[str, Any]]) -> list[str]:
     return [chunks[i]["text"] for i in top_indices if scores[i] > 0.1]
 
 
-def build_analysis_prompt_for_context(context: str) -> str:
-    return (
-        f"""Analise as informações do pedido de compra e os dados cadastrais/financeiros abaixo para realizar uma avaliação de risco de crédito consolidada e extremamente precisa.
-
-DIRETRIZES DE ANÁLISE:
-1. Baseie sua decisão em dados concretos do texto (valores, limites, ações judiciais, protestos e score).
-2. Mencione explicitamente os valores numéricos e dados específicos (valores em reais, quantidade de protestos, pontuação de score) que determinaram a sua decisão de crédito.
-3. Compare o valor total do pedido com o limite de crédito disponível e aponte a discrepância de valores.
-4. Pondere o risco do valor dos processos judiciais ativos (polos passivos) e a presença de protestos.
-5. Evite redundâncias. Entregue uma única resposta conclusiva e direta.
-
-FORMATO DA RESPOSTA (Siga rigorosamente esta estrutura):
-
-### Decisão: [Aprovar / Não Aprovar / Revisão Manual]
-- **Motivo:** [Justificativa clara citando explicitamente os dados numéricos determinantes do texto, ex: 'O valor da compra de R$ X excede o limite de crédito de R$ Y em Z vezes.']
-- **Fator Positivo:** [Ponto positivo identificado com seu respectivo valor/métrica, ex: 'Score Sivee de X é considerado bom', 'Zero protestos ativos', etc.]
-- **Fator Positivo:** [Outro ponto positivo se houver]
-- **Fator Negativo:** [Risco identificado com seu respectivo valor/métrica, ex: 'Processos judiciais como polo passivo totalizam R$ X', etc.]
-- **Fator Negativo:** [Outro ponto negativo se houver]
-- **Ponto de Atenção:** [Recomendação prática de mitigação de risco com base nos dados, ex: 'Faturar apenas até o limite de R$ X e exigir sinal de Y%']
-- **Ponto de Atenção:** [Outro ponto de atenção se houver]
-
-DADOS DO DOCUMENTO:
----
-{context}
----
-"""
-    )
+# Prompt configuration imported from app.services.analyze_contract_service
 
 
 def analyze_contract(contract_text: str, filename: str | None = None) -> list[str]:
