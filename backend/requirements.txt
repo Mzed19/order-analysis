@@ -1,0 +1,12 @@
+sentence-transformers
+faiss-cpu
+numpy
+psycopg2-binary
+requests
+beautifulsoup4
+pypdf
+python-dotenv
+redis
+llama-cpp-python
+PyJWT
+cryptography

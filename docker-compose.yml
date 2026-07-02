@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: docker/Dockerfile
+    env_file:
+      - backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/vector_store:/app/vector_store
+    working_dir: /app
+    command: python -m app.services.contract_analysis_service --port 8003
+    ports:
+      - "8003:8003"
+    tty: true
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server 
+      --maxmemory 512mb 
+      --maxmemory-policy allkeys-lru 
+      --save 60 1
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  worker:
+    image: contract-ai-app
+    env_file:
+      - backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/vector_store:/app/vector_store
+    working_dir: /app
+    command: python -m app.services.contract_analysis_worker
+    depends_on:
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_BACKEND_URL=/contract-ai-backend
+    environment:
+      - VITE_BACKEND_URL=/contract-ai-backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    working_dir: /app
+    command: bash
+    depends_on:
+      - app
+    tty: true
+
+volumes:
+  frontend_node_modules:
+  redis_data:
+
