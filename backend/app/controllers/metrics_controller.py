@@ -24,11 +24,6 @@ class MetricsHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        auth_header = self.headers.get("Authorization")
-        if not auth_header or not validate_token(auth_header):
-            self._send_json(401, {"error": "Unauthorized"})
-            return
-
         conn = get_conn()
         try:
             with conn.cursor() as cur:

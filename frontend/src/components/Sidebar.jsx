@@ -1,13 +1,8 @@
 import { useState } from 'react'
-import keycloak from '../auth/keycloak'
 
 function Sidebar({ currentView, onNavigate, collapsed, onToggleCollapse }) {
-  const handleLogout = () => {
-    keycloak.logout();
-  };
-
-  const userName = keycloak.tokenParsed?.given_name || keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username || 'Usuário';
-  const userInitials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const userName = 'Usuário';
+  const userInitials = 'US';
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -79,16 +74,7 @@ function Sidebar({ currentView, onNavigate, collapsed, onToggleCollapse }) {
           </div>
           <span>{collapsed ? 'Expandir' : 'Recolher'}</span>
         </button>
-        <button className="nav-item logout" title="Sair" onClick={handleLogout}>
-          <div className="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </div>
-          <span >Sair</span>
-        </button>
+        {/* No authentication logout button removed */}
       </div>
     </aside>
   )

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import keycloak from '../auth/keycloak'
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
 
 function MetricsView() {
   const [metrics, setMetrics] = useState([])
@@ -11,11 +10,7 @@ function MetricsView() {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const response = await fetch(`${API_BASE}/metrics`, {
-          headers: {
-            'Authorization': `Bearer ${keycloak.token}`
-          }
-        })
+        const response = await fetch(`${API_BASE}/metrics`)
         if (!response.ok) {
           throw new Error('Erro ao carregar métricas.')
         }

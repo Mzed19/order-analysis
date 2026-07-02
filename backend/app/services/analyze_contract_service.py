@@ -34,21 +34,20 @@ def analyze_contract(contract_text: str, filename: str | None = None, progress_c
         raise ValueError("Não foram encontrados trechos relevantes para análise.")
 
     if progress_callback:
-        progress_callback(chunks_quantity=len(relevant_chunks), analyzed_chunks_quantity=0)
+        progress_callback(chunks_quantity=1, analyzed_chunks_quantity=0)
 
-    analyses = []
-    for i, chunk in enumerate(relevant_chunks):
-        print(f"Analisando chunk {i+1}/{len(relevant_chunks)}: {chunk[:100]}...")
-        prompt = build_analysis_prompt_for_chunk(chunk)
-        messages = [SYSTEM_MESSAGE, {"role": "user", "content": prompt}]
-        analysis = generate_response(messages)
-        analyses.append(analysis)
-        
-        if progress_callback:
-            progress_callback(analyzed_chunks_quantity=i + 1)
+    # Consolidar todos os trechos relevantes em um único contexto para evitar redundância
+    combined_context = "\n\n".join(relevant_chunks)
 
-    print(f"Análises geradas: {len(analyses)}")
-    return analyses
+    print("Analisando contexto consolidado do pedido de compra...")
+    prompt = build_analysis_prompt_for_context(combined_context)
+    messages = [SYSTEM_MESSAGE, {"role": "user", "content": prompt}]
+    analysis = generate_response(messages)
+
+    if progress_callback:
+        progress_callback(analyzed_chunks_quantity=1)
+
+    return [analysis]
 
 def get_or_create_chunks(contract_text: str, filename: str | None = None) -> list[dict[str, Any]]:
     cache_key = make_contract_cache_key(contract_text, filename)
@@ -60,34 +59,31 @@ def get_or_create_chunks(contract_text: str, filename: str | None = None) -> lis
     set_contract_chunks(cache_key, chunks)
     return chunks
 
-def build_analysis_prompt_for_chunk(chunk: str) -> str:
+def build_analysis_prompt_for_context(context: str) -> str:
     return (
-        f"""Analise as informações do pedido de compra e os dados cadastrais/financeiros abaixo para realizar uma avaliação de risco de crédito.
+        f"""Analise as informações do pedido de compra e os dados cadastrais/financeiros abaixo para realizar uma avaliação de risco de crédito consolidada e extremamente precisa.
 
 DIRETRIZES DE ANÁLISE:
-1. Compare o "Valor da Compra" com o "Limite de Crédito". Se o valor da compra for consideravelmente maior que o limite, isso representa um risco relevante de crédito.
-2. Avalie o "Total de polos passivos em reais (Processos judiciais)". Valores elevados de processos judiciais em relação ao valor da compra indicam alta exposição jurídica e risco de bloqueios.
-3. Avalie a "Quantidade Total (Protesto)". Qualquer valor acima de 0 indica restrições cadastrais ativas.
-4. Verifique a existência de "Créditos Vencidos" ou "Créditos Baixados Como Prejuízo". Valores maiores que zero indicam histórico de inadimplência recente.
-5. Avalie o "Score" do cliente (ex: Sivee PJ). Scores baixos (geralmente abaixo de 400) representam alto risco; intermediários (400-700) risco médio; altos (acima de 700) baixo risco.
-6. Defina uma recomendação clara sobre aprovar ou não o pedido de compra.
+1. Baseie sua decisão em dados concretos do texto (valores, limites, ações judiciais, protestos e score).
+2. Mencione explicitamente os valores numéricos e dados específicos (valores em reais, quantidade de protestos, pontuação de score) que determinaram a sua decisão de crédito.
+3. Compare o valor total do pedido com o limite de crédito disponível e aponte a discrepância de valores.
+4. Pondere o risco do valor dos processos judiciais ativos (polos passivos) e a presença de protestos.
+5. Evite redundâncias. Entregue uma única resposta conclusiva e direta.
 
 FORMATO DA RESPOSTA (Siga rigorosamente esta estrutura):
 
 ### Decisão: [Aprovar / Não Aprovar / Revisão Manual]
-- **Motivo:** [Explique resumidamente o motivo da decisão baseado nos cruzamentos de dados acima]
-- **Fator Positivo:** [Ponto positivo identificado, ex: Score alto, ausência de protestos, etc.]
-- **Fator Positivo:** [Outro ponto positivo (se houver)]
-- **Fator Negativo:** [Ponto negativo/risco, ex: Compra excede o limite, processos judiciais elevados, etc.]
-- **Fator Negativo:** [Outro ponto negativo (se houver)]
-- **Ponto de Atenção:** [Recomendação de monitoramento ou mitigação de risco, ex: Exigir garantias, faturar parte à vista]
-- **Ponto de Atenção:** [Outro ponto de atenção (se houver)]
+- **Motivo:** [Justificativa clara citando explicitamente os dados numéricos determinantes do texto, ex: 'O valor da compra de R$ X excede o limite de crédito de R$ Y em Z vezes.']
+- **Fator Positivo:** [Ponto positivo identificado com seu respectivo valor/métrica, ex: 'Score Sivee de X é considerado bom', 'Zero protestos ativos', etc.]
+- **Fator Positivo:** [Outro ponto positivo se houver]
+- **Fator Negativo:** [Risco identificado com seu respectivo valor/métrica, ex: 'Processos judiciais como polo passivo totalizam R$ X', etc.]
+- **Fator Negativo:** [Outro ponto negativo se houver]
+- **Ponto de Atenção:** [Recomendação prática de mitigação de risco com base nos dados, ex: 'Faturar apenas até o limite de R$ X e exigir sinal de Y%']
+- **Ponto de Atenção:** [Outro ponto de atenção se houver]
 
-Se o trecho não contiver nenhuma informação relevante sobre condições comerciais, cadastro ou pedido de compra, não responda nada.
-
-TRECHO DO PEDIDO DE COMPRA:
+DADOS DO DOCUMENTO:
 ---
-{chunk}
+{context}
 ---
 """
     )

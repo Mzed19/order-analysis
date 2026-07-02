@@ -3,10 +3,9 @@ import Sidebar from './components/Sidebar'
 import DocumentList from './components/DocumentList'
 import DocumentAnalysis from './components/DocumentAnalysis'
 import AnalysisResults from './components/AnalysisResults'
-import keycloak from './auth/keycloak'
 import './App.css'
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || '/contract-ai-backend'
+const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
 
 function App() {
   const [view, setView] = useState('list')
@@ -45,13 +44,8 @@ function App() {
 
   const fetchAnalyses = async () => {
     try {
-      const response = await fetch(`${API_BASE}/analyses`, {
-        headers: {
-          'Authorization': `Bearer ${keycloak.token}`
-        }
-      })
+      const response = await fetch(`${API_BASE}/analyses`)
       if (!response.ok) {
-        if (response.status === 401) keycloak.logout()
         throw new Error('Falha ao carregar análises')
       }
       const data = await response.json()
@@ -114,11 +108,7 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/analyze/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${keycloak.token}`
-        }
       })
-      if (response.status === 401) return keycloak.logout()
       if (!response.ok) throw new Error('Falha ao excluir análise')
 
       setDocuments((prev) => prev.filter(doc => doc.id !== id))

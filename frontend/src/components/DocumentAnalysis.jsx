@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
-import keycloak from '../auth/keycloak'
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
 
 function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
   const [file, setFile] = useState(null)
@@ -29,14 +28,10 @@ function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
 
       const response = await fetch(`${API_BASE}/analyze`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${keycloak.token}`
-        },
         body: formData,
       })
 
       if (!response.ok) {
-        if (response.status === 401) return keycloak.logout()
         throw new Error('Erro ao enviar análise')
       }
 
