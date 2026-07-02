@@ -6,16 +6,18 @@ from typing import Any
 from app.rag.pipeline import generate_response
 
 ANALYSIS_QUERY = (
-    "Cláusulas abusivas, multas excessivas, rescisão unilateral, responsabilidade civil, "
-    "prazos leoninos, riscos financeiros e pegadinhas contratuais no texto."
+    "Valor da compra, parcelas, CNPJ, nome fantasia, quantidade de protestos, "
+    "processos judiciais (polos passivos), limite de crédito, créditos vencidos, "
+    "créditos baixados como prejuízo, score Sivee pj, condições de aprovação."
 )
 
 SYSTEM_MESSAGE = {
     "role": "system",
     "content": (
-        "Você é um Analista de Risco Jurídico Sênior. Sua comunicação é executiva, direta e focada em resultados. "
-        "Sua missão é extrair insights imediatos de contratos, apontando riscos reais sem rodeios. "
-        "Evite textos longos, explicações genéricas ou redundâncias. Vá direto ao ponto."
+        "Você é um Analista de Crédito Sênior especializado na avaliação de pedidos de compra e relatórios de risco financeiro. "
+        "Sua missão é analisar os indicadores de crédito (como score, limite de crédito, processos judiciais, protestos e inadimplência) "
+        "para determinar se a concessão de crédito para o pedido de compra deve ser aprovada ou não. "
+        "Sua comunicação é extremamente direta, executiva e focada em resultados. Vá direto ao ponto."
     ),
 }
 
@@ -60,24 +62,30 @@ def get_or_create_chunks(contract_text: str, filename: str | None = None) -> lis
 
 def build_analysis_prompt_for_chunk(chunk: str) -> str:
     return (
-        f"""Analise o trecho do contrato abaixo e entregue insights imediatos e estruturados.
+        f"""Analise as informações do pedido de compra e os dados cadastrais/financeiros abaixo para realizar uma avaliação de risco de crédito.
 
-DIRETRIZES:
-1. Identifique apenas riscos REAIS e CONCRETOS.
-2. Seja extremamente direto. Use frases curtas e impactantes.
-3. Foque no impacto financeiro ou jurídico para a tomada de decisão.
+DIRETRIZES DE ANÁLISE:
+1. Compare o "Valor da Compra" com o "Limite de Crédito". Se o valor da compra for consideravelmente maior que o limite, isso representa um risco relevante de crédito.
+2. Avalie o "Total de polos passivos em reais (Processos judiciais)". Valores elevados de processos judiciais em relação ao valor da compra indicam alta exposição jurídica e risco de bloqueios.
+3. Avalie a "Quantidade Total (Protesto)". Qualquer valor acima de 0 indica restrições cadastrais ativas.
+4. Verifique a existência de "Créditos Vencidos" ou "Créditos Baixados Como Prejuízo". Valores maiores que zero indicam histórico de inadimplência recente.
+5. Avalie o "Score" do cliente (ex: Sivee PJ). Scores baixos (geralmente abaixo de 400) representam alto risco; intermediários (400-700) risco médio; altos (acima de 700) baixo risco.
+6. Defina uma recomendação clara sobre aprovar ou não o pedido de compra.
 
-FORMATO DA RESPOSTA:
+FORMATO DA RESPOSTA (Siga rigorosamente esta estrutura):
 
-### [Título do Risco]
-- **Nível:** (Crítico/Médio/Baixo)
-- **Impacto:** [Uma frase sobre o prejuízo potencial]
-- **Insight:** [Explicação direta do problema]
-- **Recomendação:** [Ação imediata: Alterar/Remover/Aceitar]
+### Decisão: [Aprovar / Não Aprovar / Revisão Manual]
+- **Motivo:** [Explique resumidamente o motivo da decisão baseado nos cruzamentos de dados acima]
+- **Fator Positivo:** [Ponto positivo identificado, ex: Score alto, ausência de protestos, etc.]
+- **Fator Positivo:** [Outro ponto positivo (se houver)]
+- **Fator Negativo:** [Ponto negativo/risco, ex: Compra excede o limite, processos judiciais elevados, etc.]
+- **Fator Negativo:** [Outro ponto negativo (se houver)]
+- **Ponto de Atenção:** [Recomendação de monitoramento ou mitigação de risco, ex: Exigir garantias, faturar parte à vista]
+- **Ponto de Atenção:** [Outro ponto de atenção (se houver)]
 
-Se não houver riscos, não responda nada
+Se o trecho não contiver nenhuma informação relevante sobre condições comerciais, cadastro ou pedido de compra, não responda nada.
 
-TRECHO DO CONTRATO:
+TRECHO DO PEDIDO DE COMPRA:
 ---
 {chunk}
 ---

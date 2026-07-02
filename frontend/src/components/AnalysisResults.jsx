@@ -118,7 +118,7 @@ function AnalysisResults({ taskId, onBack }) {
                 <div className="insight-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span className="insight-number">#{index + 1}</span>
-                    <h3 className="insight-card-title">Insight de Risco</h3>
+                    <h3 className="insight-card-title">Análise de Crédito</h3>
                   </div>
                 </div>
                 <div className="insight-content">

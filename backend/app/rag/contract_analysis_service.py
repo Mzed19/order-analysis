@@ -16,18 +16,18 @@ from app.core.redis_cache import make_contract_cache_key, get_contract_chunks, s
 from app.rag.pipeline import generate_response
 
 ANALYSIS_QUERY = (
-    "Identificar cláusulas abusivas, riscos financeiros, falta de clareza, "
-    "violações ao Código de Defesa do Consumidor (CDC), Código Civil ou leis trabalhistas. "
-    "Procurar por multas excessivas, rescisões unilaterais e pegadinhas contratuais."
+    "Valor da compra, parcelas, CNPJ, nome fantasia, quantidade de protestos, "
+    "processos judiciais, limite de crédito, créditos vencidos, quantidade, valor"
+    "créditos baixados como prejuízo, score, condições de aprovação, Motivos da Reprovação, Observação."
 )
 
 SYSTEM_MESSAGE = {
     "role": "system",
     "content": (
-        "Você é um Especialista Jurídico Sênior focado em análise de risco estratégica. "
-        "Sua missão é identificar riscos críticos e oportunidades de negociação de forma ultra-direta e executiva. "
-        "Evite juridiquês excessivo e redundâncias. Vá direto ao ponto: qual é o risco, qual o impacto financeiro/jurídico e como resolver. "
-        "Priorize a clareza e a brevidade. Use tópicos para facilitar a leitura rápida."
+        "Você é um Analista de Crédito Sênior especializado na avaliação de pedidos de compra e relatórios de risco financeiro. "
+        "Sua missão é analisar os indicadores de crédito (como score, limite de crédito, processos judiciais, protestos e inadimplência) "
+        "para determinar se a concessão de crédito para o pedido de compra deve ser aprovada ou não. "
+        "Sua comunicação é extremamente direta, executiva e focada em resultados. Vá direto ao ponto."
     ),
 }
 
@@ -81,32 +81,34 @@ def select_relevant_chunks(chunks: list[dict[str, Any]]) -> list[str]:
 
 def build_analysis_prompt_for_chunk(chunk: str) -> str:
     return (
-       f"""
-        Analise o trecho do contrato abaixo e extraia insights imediatos. 
-        Seja objetivo, curto e foque no que realmente importa para a tomada de decisão.
+        f"""Analise as informações do pedido de compra e os dados cadastrais/financeiros abaixo para realizar uma avaliação de risco de crédito.
 
-        DIRETRIZES:
-        1. Identifique apenas riscos REAIS (financeiros ou jurídicos).
-        2. Seja extremamente conciso. Use frases curtas.
-        3. Aponte o impacto direto no bolso ou na operação.
-        4. Atribua um SCORE DE RISCO de 0 a 100.
+DIRETRIZES DE ANÁLISE:
+1. Compare o "Valor da Compra" com o "Limite de Crédito". Se o valor da compra for consideravelmente maior que o limite, isso representa um risco relevante de crédito.
+2. Avalie o "Total de polos passivos em reais (Processos judiciais)". Valores elevados de processos judiciais em relação ao valor da compra indicam alta exposição jurídica e risco de bloqueios.
+3. Avalie a "Quantidade Total (Protesto)". Qualquer valor acima de 0 indica restrições cadastrais ativas.
+4. Verifique a existência de "Créditos Vencidos" ou "Créditos Baixados Como Prejuízo". Valores maiores que zero indicam histórico de inadimplência recente.
+5. Avalie o "Score" do cliente (ex: Sivee PJ). Scores baixos (geralmente abaixo de 400) representam alto risco; intermediários (400-700) risco médio; altos (acima de 700) baixo risco.
+6. Defina uma recomendação clara sobre aprovar ou não o pedido de compra.
 
-        FORMATO DA RESPOSTA (Siga rigorosamente):
+FORMATO DA RESPOSTA (Siga rigorosamente esta estrutura):
 
-        ### [Título Direto do Risco]
-        - **Nível:** (Crítico/Médio/Baixo)
-        - **Impacto:** (Uma frase curta sobre o prejuízo potencial)
-        - **Texto:** "Citação curta da cláusula"
-        - **Insight:** (Explicação direta do porquê isso é um problema)
-        - **Ação:** (O que fazer: Alterar/Remover/Aceitar)
+### Decisão: [Aprovar / Não Aprovar / Revisão Manual]
+- **Motivo:** [Explique resumidamente o motivo da decisão baseado nos cruzamentos de dados acima]
+- **Fator Positivo:** [Ponto positivo identificado, ex: Score alto, ausência de protestos, etc.]
+- **Fator Positivo:** [Outro ponto positivo (se houver)]
+- **Fator Negativo:** [Ponto negativo/risco, ex: Compra excede o limite, processos judiciais elevados, etc.]
+- **Fator Negativo:** [Outro ponto negativo (se houver)]
+- **Ponto de Atenção:** [Recomendação de monitoramento ou mitigação de risco, ex: Exigir garantias, faturar parte à vista]
+- **Ponto de Atenção:** [Outro ponto de atenção (se houver)]
 
-        Se não houver riscos, não responda nada
+Se o trecho não contiver nenhuma informação relevante sobre condições comerciais, cadastro ou pedido de compra, não responda nada.
 
-        TRECHO PARA ANÁLISE:
-        ---
-        {chunk}
-        ---
-        """
+TRECHO DO PEDIDO DE COMPRA:
+---
+{chunk}
+---
+"""
     )
 
 

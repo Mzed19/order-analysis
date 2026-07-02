@@ -21,7 +21,7 @@ function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
     if (!file) return
 
     setLoading(true)
-    setStatusMessage('Enviando documento...')
+    setStatusMessage('Enviando pedido de compra...')
 
     try {
       const formData = new FormData()
@@ -50,7 +50,7 @@ function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
         progress: 20,
       }
       onDocumentAnalyzed(newTask)
-      onSuccess?.('Documento enviado com sucesso! Acompanhe o progresso na lista.')
+      onSuccess?.('Pedido de compra enviado com sucesso! Acompanhe o progresso na lista.')
       setFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error) {
@@ -64,15 +64,15 @@ function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
     <div className="analysis-container animate-fade-in">
       <div className="page-header" style={{ marginBottom: '32px' }}>
         <div className="header-title">
-          <h1>Nova Análise IA</h1>
-          <p className="subtitle">Faça o upload de documentos PDF para extração inteligente de dados</p>
+          <h1>Nova Análise de Crédito</h1>
+          <p className="subtitle">Faça o upload de pedidos de compra em PDF para análise inteligente</p>
         </div>
       </div>
 
       <div className="analysis-page" style={{ gridTemplateColumns: '1fr', maxWidth: '600px', margin: '0 auto' }}>
         <div className="upload-card">
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px' }}>Upload do Contrato</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px' }}>Upload do Pedido de Compra</h2>
             <label className="file-upload" htmlFor="pdf-input">
               <input
                 id="pdf-input"
@@ -89,7 +89,7 @@ function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 <span className="upload-text">
-                  {file ? file.name : 'Selecionar Documento PDF'}
+                  {file ? file.name : 'Selecionar Pedido de Compra (PDF)'}
                 </span>
                 <span className="upload-hint">Clique para selecionar seu arquivo</span>
               </div>
