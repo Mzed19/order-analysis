@@ -28,17 +28,16 @@ services:
     volumes:
       - redis_data:/data
     command: >
-      redis-server 
-      --maxmemory 512mb 
-      --maxmemory-policy allkeys-lru 
-      --save 60 1
+      redis-server  --maxmemory 512mb  --maxmemory-policy allkeys-lru  --save 60 1
     deploy:
       resources:
         limits:
           memory: 1024M
 
   worker:
-    image: contract-ai-app
+    build:
+      context: ./backend
+      dockerfile: docker/Dockerfile
     env_file:
       - backend/.env
     environment:
@@ -61,9 +60,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=/contract-ai-backend
+        - VITE_BACKEND_URL=http://localhost:8003
     environment:
-      - VITE_BACKEND_URL=/contract-ai-backend
+      - VITE_BACKEND_URL=http://localhost:8003
     ports:
       - "3000:3000"
     volumes:
