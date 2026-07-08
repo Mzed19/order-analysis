@@ -6,7 +6,7 @@ from pathlib import Path
 
 current_file_path = Path(__file__).resolve()
 BASE_DIR = current_file_path.parent.parent.parent
-MODEL_PATH = os.path.join(BASE_DIR, "models", "qwen2.5-1.5b-instruct-q5_k_m.gguf")
+MODEL_PATH = os.path.join(BASE_DIR, "models", os.getenv("GENERATION_MODEL_NAME", "Qwen2.5-3B-Instruct-Q5_K_M.gguf"))
 
 # Inicializa o modelo otimizado para CPU
 # n_ctx: tamanho da janela de contexto (importante para contratos longos)

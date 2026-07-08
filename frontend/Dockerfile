@@ -5,6 +5,7 @@ RUN npm ci
 COPY . .
 ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+RUN npm install
 RUN npm run build
 RUN mkdir -p dist/contract-ai && \
     mv dist/assets dist/contract-ai/ 2>/dev/null || true && \
