@@ -53,10 +53,10 @@ def ask(question: str):
         Você receberá:
         - O CPF ou CNPJ do solicitante (apenas um identificador, não é um dado financeiro).
         - Os dados financeiros do pedido de compra, incluindo obrigatoriamente o valor do pedido.
-        - Um contexto recuperado pelo sistema RAG contendo histórico e informações relevantes para análise de crédito.
+        - Um contexto recuperado pelo sistema RAG contendo conhecimentos relevantes para análise de crédito.
 
         Sua tarefa é:
-        1. Comparar o valor do pedido com as demais informações financeiras e com o histórico disponível no contexto.
+        1. Comparar o valor do pedido com as demais informações financeiras do contexto.
         2. Avaliar o risco de concessão de crédito considerando exclusivamente os dados fornecidos.
         3. Não criar, assumir ou inferir informações que não estejam presentes no contexto ou no pedido.
 
