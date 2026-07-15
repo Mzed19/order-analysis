@@ -28,7 +28,6 @@ def generate_response(prompt: str | list) -> str:
 
     output = llm.create_chat_completion(
         messages=messages,
-        max_tokens=1024,
         temperature=0.0, # Baixa temperatura para análise jurídica (mais determinístico)
         repeat_penalty=1.1
     )
@@ -49,14 +48,19 @@ def ask(question: str):
     # Prompt System + User (Melhorado para modelos menores)
     full_prompt = f"""
         Você é um analista de crédito especializado em avaliar pedidos de compra.
+        Responda à pergunta do usuário baseando-se EXCLUSIVAMENTE nas informações de contexto fornecidas abaixo.
+        Se as informações de contexto não forem suficientes para responder, diga claramente que não possui essa informação.
 
-        Você deverá responder a seguinte pergunta: {question} com base nos conhecimentos relevantes para análise de crédito.
+        Contexto:
+        {context}
+
+        Pergunta: {question}
+        Resposta:
     """
     
     # Gerando resposta com llama-cpp (muito mais rápido em CPU)
     response = llm(
         full_prompt,
-        max_tokens=1024,
         stop=["<|im_end|>"],
         echo=False
     )

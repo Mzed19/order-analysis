@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import DocumentList from './components/DocumentList'
 import DocumentAnalysis from './components/DocumentAnalysis'
 import AnalysisResults from './components/AnalysisResults'
+import ChatRAG from './components/ChatRAG'
 import './App.css'
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
@@ -152,6 +153,10 @@ function App() {
             taskId={selectedTaskId}
             onBack={handleGoBackToList}
           />
+        )}
+
+        {view === 'chat' && (
+          <ChatRAG />
         )}
 
         {toastMessage && <div className="toast-notification">{toastMessage}</div>}

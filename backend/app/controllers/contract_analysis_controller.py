@@ -165,6 +165,20 @@ class ContractAnalysisHandler(BaseHTTPRequestHandler):
             task_id = enqueue_task(contract_text, filename, user_id, user_name)
             task_data = get_task(task_id, user_id)
             self._send_json(202, task_data)
+        elif path == "/ask":
+            try:
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length)
+                payload = json.loads(body.decode("utf-8", errors="replace"))
+                question = payload.get("question")
+                if not question or not isinstance(question, str):
+                    raise ValueError("O campo 'question' é obrigatório e deve ser uma string.")
+
+                from app.rag.pipeline import ask
+                answer = ask(question)
+                self._send_json(200, {"answer": answer})
+            except Exception as exc:
+                self._send_json(500, {"error": str(exc)})
         else:
             self._send_json(404, {"error": "Endpoint not found"})
 
