@@ -13,11 +13,27 @@ connection_pool = pool.SimpleConnectionPool(
     user=os.environ["POSTGRES_USER"],
     password=os.environ["POSTGRES_PASSWORD"],
     port=int(os.getenv("POSTGRES_PORT", "5432")),
-    connect_timeout=10
+    connect_timeout=10,
+    keepalives=1,
+    keepalives_idle=30,
+    keepalives_interval=10,
+    keepalives_count=3,
+    options="-c statement_timeout=60000"
 )
 
 def get_conn():
-    return connection_pool.getconn()
+    conn = connection_pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+    except Exception:
+        try:
+            connection_pool.putconn(conn, close=True)
+        except Exception:
+            pass
+        conn = connection_pool.getconn()
+    return conn
 
 def release_conn(conn):
     connection_pool.putconn(conn)
+

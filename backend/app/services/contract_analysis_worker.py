@@ -21,9 +21,12 @@ def run_worker() -> None:
                     analyses = analyze_contract(contract_text, filename, progress_callback=progress_callback)
                     update_task_result(task_id, analyses, "completed")
                     
-                    # Gravar métrica no PostgreSQL
-                    user_name = task.get("user_name", "Usuário Desconhecido")
-                    record_metric(user_name, filename or "Documento sem nome")
+                    # Gravar métrica no PostgreSQL (com tratamento isolado para não falhar a análise em caso de erro no DB)
+                    try:
+                        user_name = task.get("user_name", "Usuário Desconhecido")
+                        record_metric(user_name, filename or "Documento sem nome")
+                    except Exception as me:
+                        print(f"Warning: Failed to record metrics: {me}")
                     
                     print(f"Task {task_id} completed.")
                 except Exception as e:

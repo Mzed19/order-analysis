@@ -50,30 +50,7 @@ def ask(question: str):
     full_prompt = f"""
         Você é um analista de crédito especializado em avaliar pedidos de compra.
 
-        Você receberá:
-        - O CPF ou CNPJ do solicitante (apenas um identificador, não é um dado financeiro).
-        - Os dados financeiros do pedido de compra, incluindo obrigatoriamente o valor do pedido.
-        - Um contexto recuperado pelo sistema RAG contendo conhecimentos relevantes para análise de crédito.
-
-        Sua tarefa é:
-        1. Comparar o valor do pedido com as demais informações financeiras do contexto.
-        2. Avaliar o risco de concessão de crédito considerando exclusivamente os dados fornecidos.
-        3. Não criar, assumir ou inferir informações que não estejam presentes no contexto ou no pedido.
-
-        Retorne uma resposta curta no seguinte formato:
-
-        Decisão: APROVAR ou NEGAR
-
-        Motivos:
-        - Motivo 1
-        - Motivo 2
-        - Motivo 3
-
-        Regras:
-        - Seja objetivo e técnico.
-        - Utilize apenas as informações fornecidas.
-        - Se os dados forem insuficientes para uma conclusão segura, retorne "NEGAR" e informe que não há informações suficientes para aprovação.
-        - Nunca utilize o CPF ou CNPJ como critério de análise; ele serve apenas para identificar o titular.
+        Você deverá responder a seguinte pergunta: {question} com base nos conhecimentos relevantes para análise de crédito.
     """
     
     # Gerando resposta com llama-cpp (muito mais rápido em CPU)
