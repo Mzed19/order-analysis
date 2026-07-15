@@ -1,7 +1,5 @@
 import os
 from llama_cpp import Llama
-from app.core.embeddings import embed_query
-from app.core.vector_store import vector_store
 from pathlib import Path
 
 current_file_path = Path(__file__).resolve()
@@ -34,6 +32,9 @@ def generate_response(prompt: str | list) -> str:
     return output["choices"][0]["message"]["content"]
 
 def ask(question: str):
+    from app.core.embeddings import embed_query
+    from app.core.vector_store import vector_store
+
     query_embedding = embed_query([question])
     results = vector_store.search(query_embedding, k=5)
     
@@ -45,24 +46,18 @@ def ask(question: str):
     if not context:
         return "Não encontrei contexto suficiente na base vetorial."
 
-    # Prompt System + User (Melhorado para modelos menores)
-    full_prompt = f"""
-        Você é um analista de crédito especializado em avaliar pedidos de compra.
-        Responda à pergunta do usuário baseando-se EXCLUSIVAMENTE nas informações de contexto fornecidas abaixo.
-        Se as informações de contexto não forem suficientes para responder, diga claramente que não possui essa informação.
+    system_message = {
+        "role": "system",
+        "content": (
+            "Você é um analista de crédito especializado em avaliar pedidos de compra. "
+            "Responda à pergunta do usuário baseando-se EXCLUSIVAMENTE nas informações de contexto fornecidas abaixo. "
+            "Se as informações de contexto não forem suficientes para responder, diga claramente que não possui essa informação."
+        ),
+    }
 
-        Contexto:
-        {context}
+    user_message = {
+        "role": "user",
+        "content": f"Contexto:\n{context}\n\nPergunta: {question}",
+    }
 
-        Pergunta: {question}
-        Resposta:
-    """
-    
-    # Gerando resposta com llama-cpp (muito mais rápido em CPU)
-    response = llm(
-        full_prompt,
-        stop=["<|im_end|>"],
-        echo=False
-    )
-
-    return response["choices"][0]["text"].strip()
+    return generate_response([system_message, user_message])

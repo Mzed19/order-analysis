@@ -2,11 +2,16 @@ import os
 
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from pathlib import Path
 
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "intfloat/multilingual-e5-base")
 EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "768"))
 
-model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+current_file_path = Path(__file__).resolve()
+BASE_DIR = current_file_path.parent.parent.parent
+MODEL_PATH = os.path.join(BASE_DIR, "models", os.getenv("EMBEDDING_MODEL_NAME", "multilingual-e5-base"))
+
+model = SentenceTransformer(MODEL_PATH)
+print(f"Modelo de embeddings carregado: {MODEL_PATH}")
 
 def embed(texts: list[str], input_type: str = "passage") -> np.ndarray:
     prefixed_texts = prefix_texts(texts, input_type=input_type)

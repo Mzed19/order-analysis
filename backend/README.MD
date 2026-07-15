@@ -36,8 +36,11 @@ O projeto utiliza o modelo **Qwen 2.5 1.5B** em formato GGUF para rodar localmen
 
 ```bash
 pip install huggingface_hub
-huggingface-cli download Qwen/Qwen2.5-1.5B-Instruct-GGUF qwen2.5-1.5b-instruct-q5_k_m.gguf --local-dir ./models
+hf download Qwen/Qwen2.5-1.5B-Instruct-GGUF qwen2.5-1.5b-instruct-q5_k_m.gguf --local-dir ./models
+
+hf download intfloat/multilingual-e5-base --local-dir ./models/multilingual-e5-base
 ```
+
 
 ## 🐳 Executando com Docker
 

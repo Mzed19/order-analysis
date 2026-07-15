@@ -25,6 +25,16 @@ CHUNK_SIZE = 700
 OVERLAP = 100
 MAX_CHUNKS = 6
 
+# Orçamento de tokens para o contexto do contrato.
+# Janela total = 4096. Reserva ~800 tokens para system message + prompt template
+# e ~500 tokens para a resposta gerada. Restam ~2800 tokens para o dossiê.
+# Estimativa conservadora: ~3 chars por token em português.
+_MAX_CONTEXT_CHARS = 2800 * 3  # ~8400 caracteres
+
+def _estimate_fits_context(text: str) -> bool:
+    """Verifica se o texto cabe no orçamento de tokens do contexto."""
+    return len(text) <= _MAX_CONTEXT_CHARS
+
 def analyze_contract(contract_text: str, filename: str | None = None, progress_callback=None) -> list[str]:
     print(f"Analisando pedido de compra: filename={filename}, texto[:200]={contract_text[:200]}...")
     if not contract_text.strip():
@@ -33,10 +43,18 @@ def analyze_contract(contract_text: str, filename: str | None = None, progress_c
     if progress_callback:
         progress_callback(chunks_quantity=1, analyzed_chunks_quantity=0)
 
-    # Analisa diretamente o texto completo do pedido para evitar fatiamento redundante
-    # e contaminações de diretrizes jurídicas da antiga base de dados do RAG.
-    print("Analisando dados do pedido de compra...")
-    prompt = build_analysis_prompt_for_context(contract_text)
+    if _estimate_fits_context(contract_text):
+        # Texto cabe inteiro na janela de contexto — usa diretamente
+        print("Analisando dados do pedido de compra (texto completo)...")
+        context = contract_text
+    else:
+        # Texto excede a janela — seleciona os trechos mais relevantes via embeddings
+        print("Texto excede a janela de contexto. Selecionando trechos relevantes...")
+        chunks = build_chunks(contract_text)
+        relevant_texts = select_relevant_chunks(chunks)
+        context = "\n\n".join(relevant_texts)
+
+    prompt = build_analysis_prompt_for_context(context)
     messages = [SYSTEM_MESSAGE, {"role": "user", "content": prompt}]
     analysis = generate_response(messages)
 
@@ -67,7 +85,8 @@ Você é um Analista de Crédito Sênior. Sua tarefa é analisar o dossiê finan
 - O valor da compra é o valor que o cliente está pedindo emprestado.
 - Baseie seu racional estritamente no dossiê fornecido. Não faça presunções ou estimativas.
 - A última compra do cliente não deve ser considerada.
-
+- O máximo do Score é 1000.
+- Indicadores negativos como protestos, recuperação judicial, ou processos judiciais zerados são pontos positivos.
 ## Formato de Saída (Obrigatório)
 Retorne única e exclusivamente os 3 campos abaixo, sem saudações, introduções ou explicações adicionais.
 
