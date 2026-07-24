@@ -60,9 +60,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=http://localhost:8003
+        - VITE_BACKEND_URL=/api
     environment:
-      - VITE_BACKEND_URL=http://localhost:8003
+      - VITE_BACKEND_URL=/api
+      - VITE_PROXY_TARGET=http://app:8003
     ports:
       - "3000:3000"
     volumes:

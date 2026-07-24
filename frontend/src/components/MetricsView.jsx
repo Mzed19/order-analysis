@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
+import { apiFetch } from '../api'
 
 function MetricsView() {
   const [metrics, setMetrics] = useState([])
@@ -10,7 +9,7 @@ function MetricsView() {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const response = await fetch(`${API_BASE}/metrics`)
+        const response = await apiFetch('/metrics')
         if (!response.ok) {
           throw new Error('Erro ao carregar métricas.')
         }

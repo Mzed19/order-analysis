@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
+import { apiFetch } from '../api'
 
 function ChatRAG() {
   const [messages, setMessages] = useState([
@@ -37,7 +36,7 @@ function ChatRAG() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_BASE}/ask`, {
+      const response = await apiFetch('/ask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

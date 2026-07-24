@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
+import { apiFetch } from '../api'
 
 // Simple Markdown Parser for bold, italic, and lists
 const formatMarkdown = (text) => {
@@ -32,7 +31,7 @@ function AnalysisResults({ taskId, onBack }) {
   useEffect(() => {
     const fetchTaskStatus = async () => {
       try {
-        const response = await fetch(`${API_BASE}/analyze/${taskId}`)
+        const response = await apiFetch(`/analyze/${taskId}`)
         if (!response.ok) {
           setStatusMessage('Erro ao carregar detalhes da análise.')
           setLoading(false)

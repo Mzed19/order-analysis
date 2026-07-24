@@ -92,7 +92,7 @@ Retorne única e exclusivamente os 3 campos abaixo, sem saudações, introduçõ
 
 **PORCENTAGEM DE RISCO:** [Escreva a porcentagem de risco de inadimplência, de 0% a 100%, com base nos indicadores do dossiê.]
 
-**JUSTIFICATIVA CRÍTICA:** [Escreva em até 3 linhas o racional financeiro da sua decisão. Destaque os valores absolutos e os indicadores de maior peso (processos, protestos, faturamento) que fundamentaram o seu parecer.]
+**JUSTIFICATIVA CRÍTICA:** [Escreva em até 5 linhas o racional financeiro da sua decisão. Destaque os valores absolutos e os indicadores de maior peso que fundamentaram o seu parecer.]
 
 **CONTRA-PROPOSTA:** [Se a recomendação for NEGAR, sugira uma alternativa de negociação ou ajuste do pedido de compra que poderia reduzir o risco e viabilizar a aprovação.]
 ==================================================

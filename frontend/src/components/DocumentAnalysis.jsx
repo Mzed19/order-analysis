@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
+import { apiFetch } from '../api'
 
 function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
   const [file, setFile] = useState(null)
@@ -26,7 +25,7 @@ function DocumentAnalysis({ onDocumentAnalyzed, onSuccess }) {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch(`${API_BASE}/analyze`, {
+      const response = await apiFetch('/analyze', {
         method: 'POST',
         body: formData,
       })

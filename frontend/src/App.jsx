@@ -4,9 +4,8 @@ import DocumentList from './components/DocumentList'
 import DocumentAnalysis from './components/DocumentAnalysis'
 import AnalysisResults from './components/AnalysisResults'
 import ChatRAG from './components/ChatRAG'
+import { apiFetch } from './api'
 import './App.css'
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8003'
 
 function App() {
   const [view, setView] = useState('list')
@@ -45,7 +44,7 @@ function App() {
 
   const fetchAnalyses = async () => {
     try {
-      const response = await fetch(`${API_BASE}/analyses`)
+      const response = await apiFetch('/analyses')
       if (!response.ok) {
         throw new Error('Falha ao carregar análises')
       }
@@ -107,7 +106,7 @@ function App() {
 
   const handleDeleteDocument = async (id) => {
     try {
-      const response = await fetch(`${API_BASE}/analyze/${id}`, {
+      const response = await apiFetch(`/analyze/${id}`, {
         method: 'DELETE',
       })
       if (!response.ok) throw new Error('Falha ao excluir análise')

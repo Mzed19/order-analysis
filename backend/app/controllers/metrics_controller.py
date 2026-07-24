@@ -4,23 +4,32 @@ from infra.database.postgres import get_conn, release_conn
 from app.helpers.auth_helper import validate_token
 from urllib.parse import urlparse
 
+CORS_ALLOW_HEADERS = (
+    "Content-Type, Authorization, ngrok-skip-browser-warning, X-Requested-With"
+)
+
+
 class MetricsHandler(BaseHTTPRequestHandler):
+    def _cors_headers(self) -> None:
+        origin = self.headers.get("Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", origin or "*")
+        self.send_header("Access-Control-Allow-Methods", "GET,OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", CORS_ALLOW_HEADERS)
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.send_header("Vary", "Origin")
+
     def _send_json(self, status_code: int, payload: dict):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self._cors_headers()
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self._cors_headers()
         self.end_headers()
 
     def do_GET(self):
