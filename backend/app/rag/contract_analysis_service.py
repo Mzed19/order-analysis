@@ -19,6 +19,7 @@ from app.services.analyze_contract_service import (
     ANALYSIS_QUERY,
     SYSTEM_MESSAGE,
     build_analysis_prompt_for_context,
+    analyze_contract as analyze_contract_v2,
 )
 
 CHUNK_SIZE = 800
@@ -73,18 +74,8 @@ def select_relevant_chunks(chunks: list[dict[str, Any]]) -> list[str]:
 
 
 def analyze_contract(contract_text: str, filename: str | None = None) -> list[str]:
-    print(f"Analisando pedido de compra: filename={filename}, texto[:200]={contract_text[:200]}...")
-    if not contract_text.strip():
-        raise ValueError("O texto do documento está vazio.")
-
-    # Analisa diretamente o texto completo do pedido para evitar fatiamento redundante
-    # e contaminações de diretrizes jurídicas da antiga base de dados do RAG.
-    print("Analisando dados do pedido de compra...")
-    prompt = build_analysis_prompt_for_context(contract_text)
-    messages = [SYSTEM_MESSAGE, {"role": "user", "content": prompt}]
-    analysis = generate_response(messages)
-
-    return [analysis]
+    # Delega para o serviço de produção (extração de fatos + parecer).
+    return analyze_contract_v2(contract_text, filename)
 
 
 def extract_text_from_file(filename: str | None, data: bytes) -> str:

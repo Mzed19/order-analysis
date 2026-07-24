@@ -11,14 +11,14 @@ MODEL_PATH = os.path.join(BASE_DIR, "models", os.getenv("GENERATION_MODEL_NAME",
 # n_threads: ajuste para o número de núcleos físicos do seu processador
 llm = Llama(
     model_path=MODEL_PATH,
-    n_ctx=4096, 
-    n_threads=3, 
+    n_ctx=4096,
+    n_threads=3,
     verbose=False
 )
 
 print(f"Modelo de geração carregado: {MODEL_PATH}")
 
-def generate_response(prompt: str | list) -> str:
+def generate_response(prompt: str | list, max_tokens: int = 700) -> str:
     if isinstance(prompt, str):
         messages = [{"role": "user", "content": prompt}]
     else:
@@ -26,8 +26,9 @@ def generate_response(prompt: str | list) -> str:
 
     output = llm.create_chat_completion(
         messages=messages,
-        temperature=0.0, # Baixa temperatura para análise jurídica (mais determinístico)
-        repeat_penalty=1.1
+        temperature=0.0,
+        repeat_penalty=1.15,
+        max_tokens=max_tokens,
     )
     return output["choices"][0]["message"]["content"]
 
@@ -37,7 +38,7 @@ def ask(question: str):
 
     query_embedding = embed_query([question])
     results = vector_store.search(query_embedding, k=5)
-    
+
     context = "\n\n".join(
         f"Fonte: {result.get('title') or result.get('source') or 'documento'}\n{result['content']}"
         for result in results
@@ -49,15 +50,19 @@ def ask(question: str):
     system_message = {
         "role": "system",
         "content": (
-            "Você é um analista de crédito especializado em avaliar pedidos de compra. "
-            "Responda à pergunta do usuário baseando-se EXCLUSIVAMENTE nas informações de contexto fornecidas abaixo. "
-            "Se as informações de contexto não forem suficientes para responder, diga claramente que não possui essa informação."
+            "Você é um analista de crédito. Responda só com base no contexto. "
+            "Não invente dados. Não trate data da última compra como inadimplência. "
+            "Não se contradiga. Se faltar informação, diga que não possui esse dado."
         ),
     }
 
     user_message = {
         "role": "user",
-        "content": f"Contexto:\n{context}\n\nPergunta: {question}",
+        "content": (
+            f"Contexto:\n{context}\n\n"
+            f"Pergunta: {question}\n\n"
+            "Responda de forma clara, coesa e sem contradições internas."
+        ),
     }
 
-    return generate_response([system_message, user_message])
+    return generate_response([system_message, user_message], max_tokens=500)

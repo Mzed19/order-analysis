@@ -12,6 +12,7 @@ MODEL_PATH = os.path.join(BASE_DIR, "models", os.getenv("EMBEDDING_MODEL_NAME", 
 
 model = SentenceTransformer(MODEL_PATH)
 print(f"Modelo de embeddings carregado: {MODEL_PATH}")
+print(f"v2.0")
 
 def embed(texts: list[str], input_type: str = "passage") -> np.ndarray:
     prefixed_texts = prefix_texts(texts, input_type=input_type)
